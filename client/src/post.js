@@ -1,21 +1,27 @@
-export default function Post() {
-    return (
+import React from "react";
+import { formatISO9075 } from "date-fns";
+import { Link } from "react-router-dom";
 
+export default function Post({ _id, title, summary, cover, content, createdAt, author }) {
+    return (
         <div className="post">
             <div className="image">
-                <img src="https://cdn.pixabay.com/photo/2018/06/07/16/49/virtual-3460451_1280.jpg" alt="" />
-
+                <Link to={`/post/${_id}`}>
+                    <img src={`http://localhost:4000/${cover}`} alt="" />
+                </Link>
             </div>
             <div className="texts">
-                <h2>Apple vision pro new features</h2>
+                <Link to={`/post/${_id}`}>
+                    <h2>{title}</h2>
+                </Link>
                 <p className="info">
-                    <span className="author">Ashique and Sharma</span>
-                    <time> 2024-04-08 20:00</time>
+                    <span className="author">{author.username}</span>
+                    <time>{formatISO9075(createdAt)}</time>
                 </p>
-                <p
-                    className='summary'>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ullam cumque reiciendis corporis provident, beatae nisi veniam unde quia excepturi vitae! Illum praesentium blanditiis tempore! Unde ea quisquam in ratione labore repellendus ex.</p>
+                {/* Display full content */}
+                <p className="summary">{summary}</p>
+                {/* <div className="content" dangerouslySetInnerHTML={{ __html: content }} /> */}
             </div>
         </div>
-
-    )
+    );
 }

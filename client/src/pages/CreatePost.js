@@ -1,51 +1,67 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom'; // Import Navigate for redirection
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import Editor from '../Editor';
 
-const modules = {
-    toolbar: [
-        [{ 'header': [1, 2, false] }],
-        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-        ['link', 'image'],
-        ['clean']
-    ],
-}
-const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'indent',
-    'link', 'image'
-];
+
 
 function CreatePost() {
-    const [title, setTitle] = useState();
-    const [file, setFile] = useState();
-    const [summary, setSummary] = useState();
-    const [content, setContent] = useState();
+    const [title, setTitle] = useState('');
+    const [file, setFile] = useState(null);
+    const [summary, setSummary] = useState('');
+    const [content, setContent] = useState('');
+    const [redirect, setRedirect] = useState(false);
+
     async function createNewPost(e) {
-        const data = new FormData
-        data.set('title', title);
-        data.set('summary', summary);
-        data.set('file', file, file[0]);
-        data.set('content', content);
         e.preventDefault();
-        const response = await fetch('http://localhost:4000/post', {
-            method: 'POST',
-            body: data,
-        });
-        console.log(await response.json());
+        try {
+            const data = new FormData();
+            data.set('title', title);
+            data.set('summary', summary);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    setContent(content + `<img src="${reader.result}" alt="Uploaded Image"/>`);
+                };
+                reader.readAsDataURL(file);
+            }
+            data.set('file', file);
+            data.set('content', content);
+
+            const response = await fetch('http://localhost:4000/post', {
+                method: 'POST',
+                body: data,
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                // If post creation fails, set redirect to true and throw an error
+                throw new Error('Failed to create post');
+            }
+            setRedirect(true);
+            console.log(await response.json());
+            // Optionally, reset form fields or perform other actions upon successful post creation
+        } catch (error) {
+            console.error('Error creating post:', error.message);
+            // Handle the error here, e.g., display a message to the user
+        }
+    }
+
+    // If redirect is true, navigate to '/'
+    if (redirect) {
+        return <Navigate to={'/'} />
     }
 
     return (
         <form onSubmit={createNewPost}>
-            <input type="title" placeholder={'Title'} value={title} onChange={ev => setTitle(ev.target.value)}></input>
-            <input type="summary" placeholder={'Summary'} value={summary} onChange={ev => setSummary(ev.target.value)}></input>
-            <input type="file" onChange={e => setFile(e.target.files)}></input>
-            <ReactQuill value={content} modules={modules} formats={formats} onChange={newValue => setContent(newValue)} />
+            <input type="text" placeholder={'Title'} value={title} onChange={ev => setTitle(ev.target.value)} />
+            <input type="text" placeholder={'Summary'} value={summary} onChange={ev => setSummary(ev.target.value)} />
+            <input type="file" onChange={e => setFile(e.target.files[0])} />
+            <Editor value={content} onChange={setContent}></Editor>
             <button style={{ marginTop: '5px' }}>Create Post</button>
-        </form >
-    )
+        </form>
+    );
 }
 
-export default CreatePost
+export default CreatePost;
