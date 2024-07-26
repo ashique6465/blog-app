@@ -39,7 +39,7 @@ const PORT = process.env.PORT || 4000; // Use port from environment variable or 
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());
 
-mongoose.connect("mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/");
+mongoose.connect("mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/");
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
