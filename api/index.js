@@ -15,12 +15,24 @@ app.use((req, res, next) => {
     next();
 });
 
+// CORS Headers
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://blog-app-848g.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);
 }
 
-const uploadMiddelware = multer({
+const uploadMiddleware = multer({
     dest: 'uploads/',
     limits: {
         fileSize: 100 * 1024 * 1024, // 100 MB limit
@@ -74,7 +86,7 @@ app.post('/login', async (req, res) => {
         if (passOk) {
             jwt.sign({ username, id: userDoc._id }, salt2, {}, (error, token) => {
                 if (error) throw error;
-                res.cookie('token', token).json({
+                res.cookie('token', token, { httpOnly: true, sameSite: 'None', secure: true }).json({
                     id: userDoc._id,
                     username,
                 });
@@ -103,10 +115,10 @@ app.get('/profile', (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-    res.cookie("token", "").json("ok");
+    res.cookie("token", "", { httpOnly: true, sameSite: 'None', secure: true }).json("ok");
 });
 
-app.post('/post', uploadMiddelware.single('file'), async (req, res) => {
+app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             throw new Error('No file uploaded');
@@ -146,7 +158,7 @@ app.post('/post', uploadMiddelware.single('file'), async (req, res) => {
     }
 });
 
-app.put('/post', uploadMiddelware.single('file'), async (req, res) => {
+app.put('/post', uploadMiddleware.single('file'), async (req, res) => {
     let newPath = null;
     if (req.file) {
         const { originalname, path } = req.file;
