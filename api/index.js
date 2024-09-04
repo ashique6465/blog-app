@@ -18,10 +18,10 @@ app.use((req, res, next) => {
 
 // CORS Headers
 const corsOptions = {
-    origin: 'http://localhost:3001', // Change this to your frontend URL
+    origin: ['http://localhost:3001', 'https://blog-app-848g.vercel.app'], // Include both local and production frontend URLs
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-    credentials: true // This allows the browser to send cookies with requests
+    credentials: true, // Allows sending cookies with requests
 };
 app.use(cors(corsOptions));
 
