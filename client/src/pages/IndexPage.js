@@ -9,6 +9,9 @@ export default function IndexPage() {
             .then(response => response.json())
             .then(posts => {
                 setPosts(posts);
+            })
+            .catch(error => {
+                console.error('Failed to fetch posts:', error);
             });
     }, []);
 

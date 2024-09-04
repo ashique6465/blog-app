@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
-const cors = require('cors'); // Import cors
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -18,10 +18,10 @@ app.use((req, res, next) => {
 
 // CORS Headers
 const corsOptions = {
-    origin: 'https://blog-app-848g.vercel.app',
+    origin: 'http://localhost:3001', // Change this to your frontend URL
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-    credentials: true
+    credentials: true // This allows the browser to send cookies with requests
 };
 app.use(cors(corsOptions));
 
@@ -38,7 +38,7 @@ const uploadMiddleware = multer({
 });
 
 const salt = bcrypt.genSaltSync(10);
-const salt2 = 'fvskfvbskjf';
+const jwtSecret = 'fvskfvbskjf'; // Rename `salt2` to `jwtSecret` for clarity
 
 app.use(cookieParser());
 app.use('/uploads', express.static(__dirname + "/uploads"));
@@ -46,7 +46,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 
-mongoose.connect("mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/");
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI || "mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -57,11 +61,28 @@ db.once('open', () => {
     });
 });
 
+// Models
+const Users = mongoose.model('Users', new mongoose.Schema({
+    username: { type: String, unique: true },
+    password: String
+}));
+
+const Post = mongoose.model('Post', new mongoose.Schema({
+    title: String,
+    summary: String,
+    content: String,
+    cover: String,
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' },
+    createdAt: { type: Date, default: Date.now }
+}));
+
+// Routes
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
     try {
         const userDoc = await Users.create({
-            username, password: bcrypt.hashSync(password, salt)
+            username,
+            password: bcrypt.hashSync(password, salt)
         });
         res.json(userDoc);
     } catch (e) {
@@ -77,12 +98,9 @@ app.post('/login', async (req, res) => {
         if (!userDoc) {
             return res.status(404).json({ message: "User not found" });
         }
-        console.log("Stored hashed password:", userDoc.password);
-        console.log("Plain password:", password);
         const passOk = bcrypt.compareSync(password, userDoc.password);
-        console.log("passOk:", passOk);
         if (passOk) {
-            jwt.sign({ username, id: userDoc._id }, salt2, {}, (error, token) => {
+            jwt.sign({ username, id: userDoc._id }, jwtSecret, {}, (error, token) => {
                 if (error) throw error;
                 res.cookie('token', token, { httpOnly: true, sameSite: 'None', secure: true }).json({
                     id: userDoc._id,
@@ -90,7 +108,7 @@ app.post('/login', async (req, res) => {
                 });
             });
         } else {
-            res.status(400).json('Wrong credentials!!!');
+            res.status(400).json('Wrong credentials!');
         }
     } catch (error) {
         console.log(error);
@@ -104,7 +122,7 @@ app.get('/profile', (req, res) => {
         return res.status(401).json({ message: "Authentication required" });
     }
 
-    jwt.verify(token, salt2, {}, (error, info) => {
+    jwt.verify(token, jwtSecret, {}, (error, info) => {
         if (error) {
             return res.status(401).json({ message: "Invalid token" });
         }
@@ -112,8 +130,8 @@ app.get('/profile', (req, res) => {
     });
 });
 
-app.post("/logout", (req, res) => {
-    res.cookie("token", "", { httpOnly: true, sameSite: 'None', secure: true }).json("ok");
+app.post('/logout', (req, res) => {
+    res.cookie('token', '', { httpOnly: true, sameSite: 'None', secure: true }).json('ok');
 });
 
 app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
@@ -130,7 +148,7 @@ app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
         fs.renameSync(path, newPath);
 
         const { token } = req.cookies;
-        jwt.verify(token, salt2, {}, async (error, info) => {
+        jwt.verify(token, jwtSecret, {}, async (error, info) => {
             if (error) {
                 return res.status(401).json({ message: "Invalid token" });
             }
@@ -168,7 +186,7 @@ app.put('/post', uploadMiddleware.single('file'), async (req, res) => {
     }
 
     const { token } = req.cookies;
-    jwt.verify(token, salt2, {}, async (error, info) => {
+    jwt.verify(token, jwtSecret, {}, async (error, info) => {
         if (error) {
             return res.status(401).json({ message: "Invalid token" });
         }
