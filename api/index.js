@@ -36,7 +36,7 @@ app.use('/uploads', express.static(__dirname + "/uploads"))
 
 const PORT = process.env.PORT || 4000; // Use port from environment variable or default to 4000
 
-app.use(cors({ credentials: true, origin: 'https://blog-app-t37j-64cbx9b23-md-ashique-alis-projects.vercel.app' }));
+app.use(cors({ credentials: true, origin: 'https://blog-app-five-red.vercel.app/' }));
 app.use(express.json());
 
 mongoose.connect("mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/");
