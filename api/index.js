@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const cors = require('cors'); // Import cors
 require('dotenv').config();
 
 const app = express();
@@ -16,16 +17,13 @@ app.use((req, res, next) => {
 });
 
 // CORS Headers
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://blog-app-848g.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+const corsOptions = {
+    origin: 'https://blog-app-848g.vercel.app',
+    methods: 'GET,POST,PUT,DELETE',
+    allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
+    credentials: true
+};
+app.use(cors(corsOptions));
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -46,7 +44,7 @@ app.use(cookieParser());
 app.use('/uploads', express.static(__dirname + "/uploads"));
 app.use(express.json());
 
-const PORT = process.env.PORT || 4000; 
+const PORT = process.env.PORT || 4000;
 
 mongoose.connect("mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/");
 
