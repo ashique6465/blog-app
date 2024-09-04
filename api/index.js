@@ -1,8 +1,13 @@
 const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
 const app = express();
 
 app.use((req, res, next) => {
@@ -14,30 +19,22 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);
 }
+
 const uploadMiddelware = multer({
     dest: 'uploads/',
     limits: {
-        fileSize: 100 * 1024 * 1024,
+        fileSize: 100 * 1024 * 1024, // 100 MB limit
     }
-})
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-require('dotenv').config();
-const Users = require('./models/User');
-const Post = require('./models/Post')
-const mongoose = require('mongoose');
+});
 
 const salt = bcrypt.genSaltSync(10);
 const salt2 = 'fvskfvbskjf';
 
 app.use(cookieParser());
-app.use('/uploads', express.static(__dirname + "/uploads"))
-
-const PORT = process.env.PORT || 4000; // Use port from environment variable or default to 4000
-
-app.use(cors({ credentials: true, origin: 'https://blog-app-five-red.vercel.app/' }));
+app.use('/uploads', express.static(__dirname + "/uploads"));
 app.use(express.json());
+
+const PORT = process.env.PORT || 4000; 
 
 mongoose.connect("mongodb+srv://vasileus45:gQJwPkJRQ2AgPfaE@cluster0.tn3bzsj.mongodb.net/");
 
@@ -68,7 +65,6 @@ app.post('/login', async (req, res) => {
     try {
         const userDoc = await Users.findOne({ username });
         if (!userDoc) {
-            // User not found
             return res.status(404).json({ message: "User not found" });
         }
         console.log("Stored hashed password:", userDoc.password);
@@ -77,13 +73,12 @@ app.post('/login', async (req, res) => {
         console.log("passOk:", passOk);
         if (passOk) {
             jwt.sign({ username, id: userDoc._id }, salt2, {}, (error, token) => {
-                if (error)
-                    throw (error);
+                if (error) throw error;
                 res.cookie('token', token).json({
                     id: userDoc._id,
                     username,
                 });
-            })
+            });
         } else {
             res.status(400).json('Wrong credentials!!!');
         }
@@ -92,7 +87,6 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
-
 
 app.get('/profile', (req, res) => {
     const { token } = req.cookies;
@@ -107,22 +101,15 @@ app.get('/profile', (req, res) => {
         res.json(info);
     });
 });
+
 app.post("/logout", (req, res) => {
     res.cookie("token", "").json("ok");
-})
-
+});
 
 app.post('/post', uploadMiddelware.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             throw new Error('No file uploaded');
-        }
-
-        console.log("Reached /post route");
-        console.log("File size:", req.file.size);
-
-        if (req.file.size > 100 * 1024 * 1024) {
-            throw new Error('File size exceeds the limit');
         }
 
         const { originalname, path } = req.file;
@@ -159,9 +146,7 @@ app.post('/post', uploadMiddelware.single('file'), async (req, res) => {
     }
 });
 
-
 app.put('/post', uploadMiddelware.single('file'), async (req, res) => {
-    // Handling file upload
     let newPath = null;
     if (req.file) {
         const { originalname, path } = req.file;
@@ -172,24 +157,19 @@ app.put('/post', uploadMiddelware.single('file'), async (req, res) => {
         fs.renameSync(path, newPath);
     }
 
-    // Authenticating user
     const { token } = req.cookies;
     jwt.verify(token, salt2, {}, async (error, info) => {
         if (error) {
             return res.status(401).json({ message: "Invalid token" });
         }
 
-        // Handling post update
         const { id, title, summary, content } = req.body;
         try {
-            // Retrieve the existing post data
             const existingPost = await Post.findById(id);
-
             if (!existingPost) {
                 return res.status(404).json({ message: "Post not found" });
             }
 
-            // Check if the current user is the author of the post
             const isAuthor = String(existingPost.author) === String(info.id);
             if (!isAuthor) {
                 return res.status(403).json({ message: "You are not the author of this post" });
@@ -202,10 +182,8 @@ app.put('/post', uploadMiddelware.single('file'), async (req, res) => {
                 cover: newPath ? newPath : existingPost.cover,
             };
 
-            // Update the post with the new fields
             const updatedPost = await Post.findByIdAndUpdate(id, updateFields, { new: true });
 
-            // If a new image is uploaded, append it to the content of the post
             if (newPath) {
                 updatedPost.content += `<img src="${newPath}" alt="Updated Image"/>`;
             }
@@ -218,18 +196,23 @@ app.put('/post', uploadMiddelware.single('file'), async (req, res) => {
     });
 });
 
-
-
 app.get('/post', async (req, res) => {
     res.json(await Post.find()
         .populate('author', ['username'])
         .sort({ createdAt: -1 })
         .limit(20)
     );
-})
+});
 
 app.get('/post/:id', async (req, res) => {
     const { id } = req.params;
     const postDoc = await Post.findById(id).populate('author', ["username"]);
     res.json(postDoc);
-})
+});
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, 'client/build')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build/index.html'));
+});
