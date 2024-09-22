@@ -1,61 +1,46 @@
-import { Link } from 'react-router-dom';
-import { useContext, useEffect, useState } from 'react';
-import { UserContext } from './userContext';
+import {Link} from "react-router-dom";
+import {useContext, useEffect, useState} from "react";
+import {UserContext} from "./UserContext";
 
 export default function Header() {
-    const { setUserInfo, userInfo } = useContext(UserContext);
-    const [loading, setLoading] = useState(true);
+  const {setUserInfo,userInfo} = useContext(UserContext);
+  useEffect(() => {
+    fetch('http://localhost:4000/profile', {
+      credentials: 'include',
+    }).then(response => {
+      response.json().then(userInfo => {
+        setUserInfo(userInfo);
+      });
+    });
+  }, []);
 
-    useEffect(() => {
-        fetch("https://blog-app-five-red.vercel.app/profile", {
-            credentials: "include",
-        })
-            .then(response => response.json())
-            .then(userInfo => {
-                setUserInfo(userInfo);
-                setLoading(false);
-            })
-            .catch(error => {
-                console.error('Failed to fetch user info:', error);
-                setLoading(false);
-            });
-    }, [setUserInfo]);
+  function logout() {
+    fetch('http://localhost:4000/logout', {
+      credentials: 'include',
+      method: 'POST',
+    });
+    setUserInfo(null);
+  }
 
-    function logout() {
-        fetch("https://blog-app-five-red.vercel.app/logout", {
-            credentials: "include",
-            method: "POST",
-        })
-        .then(() => {
-            setUserInfo(null);
-        })
-        .catch(error => {
-            console.error('Failed to logout:', error);
-        });
-    }
+  const username = userInfo?.username;
 
-    const username = userInfo?.username;
-
-    if (loading) {
-        return <header>Loading...</header>;
-    }
-
-    return (
-        <header>
-            <Link to="" className="logo">My Blog</Link>
-            <nav>
-                {username ? (
-                    <>
-                        <Link to='/create'>Create New Post</Link>
-                        <a onClick={logout} href="#">Logout</a>
-                    </>
-                ) : (
-                    <>
-                        <Link to="/login">Login</Link>
-                        <Link to="/register">Register</Link>
-                    </>
-                )}
-            </nav>
-        </header>
-    );
+  return (
+    <header>
+      <Link to="/" className="logo">MyBlog</Link>
+      <nav>
+        {username && (
+          <>
+            <Link to="/create">Create new post</Link>
+            <a onClick={logout}>Logout ({username})</a>
+          </>
+        )}
+        {!username && (
+          <>
+            <Link to="/login">Login</Link>
+            <Link to="/register">Register</Link>
+          </>
+        )}
+      </nav>
+    </header>
+  );
 }
