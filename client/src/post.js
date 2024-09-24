@@ -3,6 +3,9 @@ import { formatISO9075 } from "date-fns";
 import { Link } from "react-router-dom";
 
 export default function Post({ _id, title, summary, cover, content, createdAt, author }) {
+    // Check if createdAt is a valid date
+    const validDate = createdAt ? new Date(createdAt) : null;
+
     return (
         <div className="post">
             <div className="image">
@@ -15,8 +18,10 @@ export default function Post({ _id, title, summary, cover, content, createdAt, a
                     <h2>{title}</h2>
                 </Link>
                 <p className="info">
-                    <span className="author">{author.username}</span>
-                    <time>{formatISO9075(createdAt)}</time>
+                    {/* Use optional chaining to avoid errors */}
+                    <span className="author">{author?.username || "Unknown Author"}</span>
+                    {/* Check if validDate is not null before formatting */}
+                    <time>{validDate ? formatISO9075(validDate) : "Unknown Date"}</time>
                 </p>
                 {/* Display full content */}
                 <p className="summary">{summary}</p>

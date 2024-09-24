@@ -8,9 +8,10 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const fs = require('fs');
+const path = require('path'); // Node.js path module
 
 // Direct configuration
-const MONGODB_URI = 'mongodb+srv://vasileus45:aRo7Fzl6xEQulSwl@cluster0.tn3bzsj.mongodb.net/test?retryWrites=true&w=majority';
+const MONGODB_URI = 'mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/test?retryWrites=true&w=majority';
 const PORT = 4000;
 const SECRET_KEY = 'asdfe45we45w345wegw345werjktjwertkj';
 
@@ -26,7 +27,7 @@ const uploadMiddleware = multer({ dest: 'uploads/' });
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());
 app.use(cookieParser());
-app.use('/uploads', express.static(__dirname + '/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
@@ -34,6 +35,8 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('Failed to connect to MongoDB', err));
 
 // Routes
+
+// Register
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -48,6 +51,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const userDoc = await User.findOne({ username });
@@ -67,6 +71,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Profile
 app.get('/profile', (req, res) => {
   const { token } = req.cookies;
   jwt.verify(token, secret, {}, (err, info) => {
@@ -75,41 +80,52 @@ app.get('/profile', (req, res) => {
   });
 });
 
+// Logout
 app.post('/logout', (req, res) => {
   res.cookie('token', '', { expires: new Date(0) }).json('ok');
 });
 
+// Create Post
 app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
-  const { originalname, path } = req.file;
-  const parts = originalname.split('.');
-  const ext = parts[parts.length - 1];
-  const newPath = path + '.' + ext;
-  fs.renameSync(path, newPath);
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const { originalname, path: tempPath } = req.file;
+  const ext = path.extname(originalname); // Use path.extname correctly
+  const newPath = tempPath + ext;
+  fs.renameSync(tempPath, newPath);
 
   const { token } = req.cookies;
   jwt.verify(token, secret, {}, async (err, info) => {
     if (err) return res.status(401).json('Unauthorized');
 
     const { title, summary, content } = req.body;
-    const postDoc = await Post.create({
-      title,
-      summary,
-      content,
-      cover: newPath,
-      author: info.id,
-    });
-    res.json(postDoc);
+    try {
+      const postDoc = await Post.create({
+        title,
+        summary,
+        content,
+        cover: newPath,
+        author: info.id,
+      });
+      res.json(postDoc);
+    } catch (e) {
+      res.status(400).json(e);
+    }
   });
 });
 
+// Update Post
 app.put('/post', uploadMiddleware.single('file'), async (req, res) => {
   let newPath = null;
+
+  // Handle optional file upload
   if (req.file) {
-    const { originalname, path } = req.file;
-    const parts = originalname.split('.');
-    const ext = parts[parts.length - 1];
-    newPath = path + '.' + ext;
-    fs.renameSync(path, newPath);
+    const { originalname, path: tempPath } = req.file;
+    const ext = path.extname(originalname);
+    newPath = tempPath + ext;
+    fs.renameSync(tempPath, newPath);
   }
 
   const { token } = req.cookies;
@@ -123,31 +139,40 @@ app.put('/post', uploadMiddleware.single('file'), async (req, res) => {
     const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(info.id);
     if (!isAuthor) return res.status(403).json('You are not the author');
 
-    await postDoc.update({
-      title,
-      summary,
-      content,
-      cover: newPath ? newPath : postDoc.cover,
-    });
+    // Update post fields
+    postDoc.title = title;
+    postDoc.summary = summary;
+    postDoc.content = content;
+    postDoc.cover = newPath ? newPath : postDoc.cover;
 
+    await postDoc.save(); // Use save() to persist changes
     res.json(postDoc);
   });
 });
 
+// Get Posts
 app.get('/post', async (req, res) => {
-  res.json(
-    await Post.find()
+  try {
+    const posts = await Post.find()
       .populate('author', ['username'])
       .sort({ createdAt: -1 })
-      .limit(20)
-  );
+      .limit(20);
+    res.json(posts);
+  } catch (e) {
+    res.status(400).json(e);
+  }
 });
 
+// Get Single Post
 app.get('/post/:id', async (req, res) => {
   const { id } = req.params;
-  const postDoc = await Post.findById(id).populate('author', ['username']);
-  if (!postDoc) return res.status(404).json('Post not found');
-  res.json(postDoc);
+  try {
+    const postDoc = await Post.findById(id).populate('author', ['username']);
+    if (!postDoc) return res.status(404).json('Post not found');
+    res.json(postDoc);
+  } catch (e) {
+    res.status(400).json(e);
+  }
 });
 
 // Start server
