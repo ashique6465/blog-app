@@ -32,7 +32,8 @@ app.use(cors({
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -59,13 +60,18 @@ const verifyToken = (req, res, next) => {
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
     const userDoc = await User.create({
       username,
       password: bcrypt.hashSync(password, salt),
     });
     res.json({ id: userDoc._id, username: userDoc.username });
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    console.error('Registration error:', e);
+    res.status(500).json({ error: 'Error during registration' });
   }
 });
 
@@ -78,7 +84,10 @@ app.post('/login', async (req, res) => {
     const passOk = bcrypt.compareSync(password, userDoc.password);
     if (passOk) {
       jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error('JWT sign error:', err);
+          return res.status(500).json({ error: 'Error creating token' });
+        }
         res.cookie('token', token, { 
           httpOnly: true, 
           secure: process.env.NODE_ENV === 'production', 
@@ -92,7 +101,8 @@ app.post('/login', async (req, res) => {
       res.status(400).json({ error: 'Wrong credentials' });
     }
   } catch (e) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', e);
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 
@@ -130,7 +140,8 @@ app.post('/post', verifyToken, upload.single('file'), async (req, res) => {
     });
     res.json(postDoc);
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    console.error('Post creation error:', e);
+    res.status(500).json({ error: 'Error creating post' });
   }
 });
 
@@ -162,7 +173,8 @@ app.put('/post', verifyToken, upload.single('file'), async (req, res) => {
     await postDoc.save();
     res.json(postDoc);
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    console.error('Post update error:', e);
+    res.status(500).json({ error: 'Error updating post' });
   }
 });
 
@@ -174,7 +186,8 @@ app.get('/post', async (req, res) => {
       .limit(20);
     res.json(posts);
   } catch (e) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Fetch posts error:', e);
+    res.status(500).json({ error: 'Error fetching posts' });
   }
 });
 
@@ -185,20 +198,19 @@ app.get('/post/:id', async (req, res) => {
     if (!postDoc) return res.status(404).json({ error: 'Post not found' });
     res.json(postDoc);
   } catch (e) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Fetch single post error:', e);
+    res.status(500).json({ error: 'Error fetching post' });
   }
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Global error handler:', err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-
 
 // const express = require('express');
 // const cors = require('cors');
