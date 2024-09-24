@@ -29,7 +29,7 @@ function CreatePost() {
             data.set('file', file);
             data.set('content', content);
 
-            const response = await fetch('http://localhost:4000/post', {
+            const response = await fetch('https://blog-app-five-red.vercel.app/post', {
                 method: 'POST',
                 body: data,
                 credentials: 'include',

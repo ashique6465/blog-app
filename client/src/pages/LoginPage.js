@@ -10,7 +10,7 @@ export default function LoginPage() {
     async function handelSubmit(ev) {
         ev.preventDefault();
         try {
-            const response = await fetch('http://localhost:4000/login', {
+            const response = await fetch('https://blog-app-five-red.vercel.app/login', {
                 method: "POST",
                 body: JSON.stringify({ username, password }),
                 headers: { 'Content-Type': 'application/json' },
