@@ -7,20 +7,38 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Use environment variables for sensitive information
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/test?retryWrites=true&w=majority';
-const PORT = process.env.PORT || 4000;
-const SECRET_KEY = process.env.SECRET_KEY || 'asdfe45we45w345wegw345werjktjwertkj';
-const CLIENT_URL = process.env.CLIENT_URL || 'https://blog-app-zmhj.vercel.app';
+// Direct Cloudinary configuration
+cloudinary.config({
+  cloud_name: "dkcayxxxb", // Your Cloudinary cloud name
+  api_key: "747647554167144", // Your Cloudinary API key
+  api_secret: "BnV1a9eybWGNGsLeUiBPL3qnF2s", // Your Cloudinary API secret
+});
+
+// Cloudinary storage setup for Multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'uploads',  // Folder name in your Cloudinary account
+    format: async (req, file) => 'jpg',  // Supported formats like jpg, png, etc.
+    public_id: (req, file) => Date.now().toString(),  // Unique identifier for each file
+  },
+});
+
+const upload = multer({ storage });
+
+// Directly provided MongoDB URI, PORT, and secret key
+const MONGODB_URI = 'mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/test?retryWrites=true&w=majority';
+const PORT = 4000;
+const SECRET_KEY = 'asdfe45we45w345wegw345werjktjwertkj';
+const CLIENT_URL = 'https://blog-app-zmhj.vercel.app';
 
 const salt = bcrypt.genSaltSync(10);
 const secret = SECRET_KEY;
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
 
 const allowedOrigins = [CLIENT_URL, 'https://blog-app-five-red.vercel.app'];
 
@@ -33,11 +51,11 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 }));
+
 app.use(express.json());
 app.use(cookieParser());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
@@ -57,6 +75,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
+// Register route
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -75,6 +94,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Login route
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -91,7 +111,7 @@ app.post('/login', async (req, res) => {
         res.cookie('token', token, { 
           httpOnly: true, 
           secure: process.env.NODE_ENV === 'production', 
-          sameSite: 'none' 
+          sameSite: 'none',
         }).json({
           id: userDoc._id,
           username,
@@ -106,28 +126,26 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Profile route
 app.get('/profile', verifyToken, (req, res) => {
   res.json(req.user);
 });
 
+// Logout route
 app.post('/logout', (req, res) => {
   res.cookie('token', '', { 
     httpOnly: true, 
     expires: new Date(0), 
     secure: process.env.NODE_ENV === 'production', 
-    sameSite: 'none' 
+    sameSite: 'none',
   }).json({ message: 'Logged out successfully' });
 });
 
+// Create post route with Cloudinary image upload
 app.post('/post', verifyToken, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-
-  const { originalname, path: tempPath } = req.file;
-  const ext = path.extname(originalname);
-  const newPath = tempPath + ext;
-  fs.renameSync(tempPath, newPath);
 
   const { title, summary, content } = req.body;
   try {
@@ -135,7 +153,7 @@ app.post('/post', verifyToken, upload.single('file'), async (req, res) => {
       title,
       summary,
       content,
-      cover: newPath,
+      cover: req.file.path,  // Cloudinary URL
       author: req.user.id,
     });
     res.json(postDoc);
@@ -145,14 +163,12 @@ app.post('/post', verifyToken, upload.single('file'), async (req, res) => {
   }
 });
 
+// Update post route with optional Cloudinary image upload
 app.put('/post', verifyToken, upload.single('file'), async (req, res) => {
-  let newPath = null;
+  let newCoverUrl = null;
 
   if (req.file) {
-    const { originalname, path: tempPath } = req.file;
-    const ext = path.extname(originalname);
-    newPath = tempPath + ext;
-    fs.renameSync(tempPath, newPath);
+    newCoverUrl = req.file.path;  // Cloudinary URL for the new image
   }
 
   const { id, title, summary, content } = req.body;
@@ -166,8 +182,8 @@ app.put('/post', verifyToken, upload.single('file'), async (req, res) => {
     postDoc.title = title;
     postDoc.summary = summary;
     postDoc.content = content;
-    if (newPath) {
-      postDoc.cover = newPath;
+    if (newCoverUrl) {
+      postDoc.cover = newCoverUrl;
     }
 
     await postDoc.save();
@@ -178,6 +194,7 @@ app.put('/post', verifyToken, upload.single('file'), async (req, res) => {
   }
 });
 
+// Fetch all posts
 app.get('/post', async (req, res) => {
   try {
     const posts = await Post.find()
@@ -191,6 +208,7 @@ app.get('/post', async (req, res) => {
   }
 });
 
+// Fetch a single post
 app.get('/post/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -203,11 +221,13 @@ app.get('/post/:id', async (req, res) => {
   }
 });
 
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
