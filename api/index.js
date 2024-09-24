@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -15,38 +14,48 @@ const path = require('path');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/test?retryWrites=true&w=majority';
 const PORT = process.env.PORT || 4000;
 const SECRET_KEY = process.env.SECRET_KEY || 'asdfe45we45w345wegw345werjktjwertkj';
+const CLIENT_URL = process.env.CLIENT_URL || 'https://blog-app-zmhj.vercel.app';
 
 const salt = bcrypt.genSaltSync(10);
 const secret = SECRET_KEY;
 
 const app = express();
-const uploadMiddleware = multer({ dest: 'uploads/' });
+const upload = multer({ dest: 'uploads/' });
+
+const allowedOrigins = [CLIENT_URL, 'https://blog-app-five-red.vercel.app'];
 
 app.use(cors({
   credentials: true,
-  origin: ['https://blog-app-zmhj.vercel.app', 'https://blog-app-five-red.vercel.app']
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
 }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Failed to connect to MongoDB', err));
+  .catch(err => {
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
+  });
 
-// Middleware for token verification
 const verifyToken = (req, res, next) => {
   const { token } = req.cookies;
-  if (!token) return res.status(401).json('Unauthorized');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
   jwt.verify(token, secret, {}, (err, info) => {
-    if (err) return res.status(401).json('Unauthorized');
+    if (err) return res.status(401).json({ error: 'Invalid token' });
     req.user = info;
     next();
   });
 };
 
-// Routes
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -54,7 +63,7 @@ app.post('/register', async (req, res) => {
       username,
       password: bcrypt.hashSync(password, salt),
     });
-    res.json(userDoc);
+    res.json({ id: userDoc._id, username: userDoc.username });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -70,7 +79,11 @@ app.post('/login', async (req, res) => {
     if (passOk) {
       jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
         if (err) throw err;
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none' }).json({
+        res.cookie('token', token, { 
+          httpOnly: true, 
+          secure: process.env.NODE_ENV === 'production', 
+          sameSite: 'none' 
+        }).json({
           id: userDoc._id,
           username,
         });
@@ -79,7 +92,7 @@ app.post('/login', async (req, res) => {
       res.status(400).json({ error: 'Wrong credentials' });
     }
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -88,10 +101,15 @@ app.get('/profile', verifyToken, (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-  res.cookie('token', '', { expires: new Date(0), httpOnly: true, secure: true, sameSite: 'none' }).json('ok');
+  res.cookie('token', '', { 
+    httpOnly: true, 
+    expires: new Date(0), 
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'none' 
+  }).json({ message: 'Logged out successfully' });
 });
 
-app.post('/post', verifyToken, uploadMiddleware.single('file'), async (req, res) => {
+app.post('/post', verifyToken, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -116,7 +134,7 @@ app.post('/post', verifyToken, uploadMiddleware.single('file'), async (req, res)
   }
 });
 
-app.put('/post', verifyToken, uploadMiddleware.single('file'), async (req, res) => {
+app.put('/post', verifyToken, upload.single('file'), async (req, res) => {
   let newPath = null;
 
   if (req.file) {
@@ -137,7 +155,9 @@ app.put('/post', verifyToken, uploadMiddleware.single('file'), async (req, res) 
     postDoc.title = title;
     postDoc.summary = summary;
     postDoc.content = content;
-    postDoc.cover = newPath ? newPath : postDoc.cover;
+    if (newPath) {
+      postDoc.cover = newPath;
+    }
 
     await postDoc.save();
     res.json(postDoc);
@@ -154,7 +174,7 @@ app.get('/post', async (req, res) => {
       .limit(20);
     res.json(posts);
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -165,14 +185,18 @@ app.get('/post/:id', async (req, res) => {
     if (!postDoc) return res.status(404).json({ error: 'Post not found' });
     res.json(postDoc);
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    res.status(500).json({ error: 'Server error' });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
 
 
 
