@@ -40,7 +40,7 @@
 
 // const app = express();
 
-// const allowedOrigins = [CLIENT_URL, 'http://localhost:4000'];
+// const allowedOrigins = [CLIENT_URL, 'http://https://blog-app-eight-black.vercel.app'];
 
 // app.use(cors({
 //   credentials: true,
@@ -258,7 +258,20 @@ const app = express();
 const uploadMiddleware = multer({ dest: 'uploads/' });
 
 // Middleware
-app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
+// app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
+const allowedOrigins = ['https://blog-app-ozlp.vercel.app', 'http://localhost:3000'];
+
+app.use(cors({
+  credentials: true,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
