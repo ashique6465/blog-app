@@ -259,18 +259,23 @@ const uploadMiddleware = multer({ dest: 'uploads/' });
 
 // Middleware
 // app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
-const allowedOrigins = ['https://blog-app-ozlp.vercel.app', 'http://localhost:3000'];
+const allowedOrigins = ['https://blog-app-ozlp.vercel.app', 'http://localhost:3000']; // Add allowed origins
 
 app.use(cors({
-  credentials: true,
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
+  credentials: true, // Allow credentials (cookies)
+  optionsSuccessStatus: 200, // Some browsers (e.g. Chrome) have issues with 204 responses for preflight requests
 }));
+
+// Respond to preflight requests for all routes
+app.options('*', cors());
+
 
 app.use(express.json());
 app.use(cookieParser());
