@@ -7,7 +7,7 @@ export default function IndexPage() {
 
   useEffect(() => {
     // Fetch posts from the backend API
-    fetch('https://blog-app-eight-black.vercel.app/post')
+    fetch('http://localhost:4000/post')
       .then(response => {
         if (!response.ok) {
           throw new Error(`Error fetching posts: ${response.statusText}`);

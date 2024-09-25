@@ -9,7 +9,7 @@ export default function RegisterPage() {
     async function register(ev) {
         ev.preventDefault();
         try {
-            const response = await fetch('https://blog-app-eight-black.vercel.app/register', {
+            const response = await fetch('http://localhost:4000/register', {
                 method: 'POST',
                 body: JSON.stringify({
                     username,
