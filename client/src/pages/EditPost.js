@@ -14,7 +14,7 @@ export default function EditPost() {
     const [redirect, setRedirect] = useState(false)
 
     useEffect(() => {
-        fetch('http://https://blog-app-eight-black.vercel.app/post/' + id)
+        fetch('https://blog-app-eight-black.vercel.app/post/' + id)
             .then(response => {
                 response.json().then(postInfo => {
                     setTitle(postInfo.title);
@@ -35,7 +35,7 @@ export default function EditPost() {
             data.set('file', file);
 
         }
-        const response = await fetch('http://https://blog-app-eight-black.vercel.app/post', {
+        const response = await fetch('https://blog-app-eight-black.vercel.app/post', {
             method: 'PUT',
             body: data,
             credentials: 'include',
