@@ -258,7 +258,7 @@ const app = express();
 const uploadMiddleware = multer({ dest: 'uploads/' });
 
 // Middleware
-app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
+app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
