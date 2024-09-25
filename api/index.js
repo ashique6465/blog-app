@@ -259,7 +259,7 @@ const uploadMiddleware = multer({ dest: 'uploads/' });
 
 // Middleware
 // app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
-const allowedOrigins = ['https://blog-app-ozlp.vercel.app', 'http://localhost:3000']; // Add allowed origins
+const allowedOrigins = ['http://localhost:3000',"https://blog-app-ozlp.vercel.ap"]; // Add allowed origins
 
 app.use(cors({
   origin: function (origin, callback) {
