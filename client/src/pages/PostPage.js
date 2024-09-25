@@ -10,7 +10,7 @@ export default function PostPage() {
   const { id } = useParams();
 
   useEffect(() => {
-    fetch(`https://blog-app-five-red.vercel.app/${id}`)
+    fetch(`http://https://blog-app-eight-black.vercel.app/post/${id}`)
       .then((response) => response.json())
       .then((postInfo) => setPostInfo(postInfo))
       .catch((error) => console.error("Error fetching post:", error));
@@ -50,7 +50,7 @@ export default function PostPage() {
       )}
 
       <div className="image">
-        <img src={`https://blog-app-five-red.vercel.app/${postInfo.cover}`} alt={postInfo.title} />
+        <img src={`http://https://blog-app-eight-black.vercel.app/${postInfo.cover}`} alt={postInfo.title} />
       </div>
 
       <div className="content" dangerouslySetInnerHTML={{ __html: postInfo.content }} />
