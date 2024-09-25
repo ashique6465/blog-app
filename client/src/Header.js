@@ -8,7 +8,7 @@ export default function Header() {
 
   useEffect(() => {
     // Fetch the profile with proper credentials handling
-    fetch('https://blog-app-eight-black.vercel.app/profile', {
+    fetch('https://blog-app-blond-eta.vercel.app/profile', {
       credentials: 'include',
     })
       .then(response => {
