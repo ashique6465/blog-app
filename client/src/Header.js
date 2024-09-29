@@ -8,7 +8,7 @@ export default function Header() {
 
   useEffect(() => {
     // Fetch the profile with proper credentials handling
-    fetch('https://blog-app-blond-eta.vercel.app/profile', {
+    fetch('http://localhost:4000/profile', {
       credentials: 'include',
     })
       .then(response => {
@@ -29,7 +29,7 @@ export default function Header() {
   }, []);
 
   function logout() {
-    fetch('https://blog-app-blond-eta.vercel.app/logout', {
+    fetch('http://localhost:4000/logout', {
       credentials: 'include',
       method: 'POST',
     })

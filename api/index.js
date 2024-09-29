@@ -1,5 +1,5 @@
 
-
+const path = require('path'); 
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -10,7 +10,10 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const fs = require('fs');
-const path = require('path'); // Node.js path module
+// Node.js path module
+
+// const __dirname = path.resolve()
+
 
 // Direct configuration
 const MONGODB_URI = 'mongodb+srv://ertugal37:wEoXe1U5tQUz5vRO@cluster0.4iv3f6r.mongodb.net/test?retryWrites=true&w=majority';
@@ -25,9 +28,11 @@ const secret = SECRET_KEY;
 const app = express();
 const uploadMiddleware = multer({ dest: 'uploads/' });
 
+
+
 // Middleware
 // app.use(cors({ credentials: true, origin: 'https://blog-app-ozlp.vercel.app' }));
-const allowedOrigins = ['http://localhost:3000',"https://blog-app-uu7e.vercel.app"]; // Add allowed origins
+const allowedOrigins = ['http://localhost:3000']; // Add allowed origins
 
 app.use(cors({
   origin: function (origin, callback) {
