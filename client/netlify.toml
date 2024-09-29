@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://blog-app-4-17rd.onrender.com/:splat"
+  status = 200
+  force = true

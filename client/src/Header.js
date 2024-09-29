@@ -8,7 +8,7 @@ export default function Header() {
 
   useEffect(() => {
     // Fetch the profile with proper credentials handling
-    fetch('http://localhost:4000/profile', {
+    fetch('https://blog-app-4-17rd.onrender.com/profile', {
       credentials: 'include',
     })
       .then(response => {
@@ -29,7 +29,7 @@ export default function Header() {
   }, []);
 
   function logout() {
-    fetch('http://localhost:4000/logout', {
+    fetch('https://blog-app-4-17rd.onrender.com/logout', {
       credentials: 'include',
       method: 'POST',
     })

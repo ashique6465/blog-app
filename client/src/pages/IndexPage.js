@@ -7,7 +7,7 @@ export default function IndexPage() {
 
   useEffect(() => {
     // Fetch posts from the backend API
-    fetch('http://localhost:4000/post')
+    fetch('https://blog-app-4-17rd.onrender.com/post')
       .then(response => {
         if (!response.ok) {
           throw new Error(`Error fetching posts: ${response.statusText}`);

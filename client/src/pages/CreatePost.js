@@ -22,7 +22,7 @@ function CreatePost() {
                 data.append('file', file);  // Appending the file for upload
             }
 
-            const response = await fetch('http://localhost:4000/post', {
+            const response = await fetch('https://blog-app-4-17rd.onrender.com/post', {
                 method: 'POST',
                 body: data,
                 credentials: 'include', // Include credentials (cookies) for authentication
